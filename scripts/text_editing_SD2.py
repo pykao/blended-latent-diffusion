@@ -140,7 +140,7 @@ class BlendedLatnetDiffusion:
             noise_source_latents = self.scheduler.add_noise(
                 source_latents, torch.randn_like(latents), t
             )
-            latents = latents * latent_mask + noise_source_latents * (1 - latent_mask)
+            #latents = latents * latent_mask + noise_source_latents * (1 - latent_mask)
 
         latents = 1 / 0.18215 * latents
 

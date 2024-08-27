@@ -38,7 +38,8 @@ class BlendedLatnetDiffusion:
 
     def load_models(self):
         self.pipe = StableDiffusionInstructPix2PixPipeline.from_pretrained(
-            self.args.model_path, torch_dtype=torch.float16
+            self.args.model_path,
+            torch_dtype=torch.float16,
         ).to(self.args.device)
 
 
@@ -50,12 +51,13 @@ class BlendedLatnetDiffusion:
         height=512,
         width=512,
         num_inference_steps=50,
+        image_guidance_scale=7.5,
     ):
 
         image = Image.open(image_path)
         image = image.resize((height, width), Image.BILINEAR)
         image = np.array(image)[:, :, :3]
-        image = self.pipe(prompt=prompt, image=image).images[0]
+        image = self.pipe(prompt=prompt, image=image, num_inference_steps=num_inference_steps, image_guidance_scale=image_guidance_scale).images[0]
 
         return image
 
