@@ -19,11 +19,10 @@ for file in "$input_folder"/*_image_condition.png; do
 
   # Run the Python script with the extracted filenames
   python scripts/text_editing_SDXL.py \
-      --prompt "make it sunset" \
+      --prompt "chinese ink" \
       --init_image "$init_image" \
       --mask "$mask" \
       --output_path "$output_path" \
       --batch_size 1\
-      --blending_start_percentage 0.01
 
 done
