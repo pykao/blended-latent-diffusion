@@ -4,6 +4,7 @@ from PIL import Image
 
 from diffusers import DDIMScheduler, StableDiffusionPipeline
 from diffusers import StableDiffusionInstructPix2PixPipeline
+from diffusers import DDPMScheduler
 import torch
 
 
@@ -56,13 +57,13 @@ class BlendedLatnetDiffusion:
         self.tokenizer = pipe.tokenizer
         self.text_encoder = pipe.text_encoder.to(self.args.device)
         self.unet = pipe.unet.to(self.args.device)
-        self.scheduler = DDIMScheduler(
+        self.scheduler = DDPMScheduler(
             beta_start=0.00085,
             beta_end=0.012,
             beta_schedule="scaled_linear",
             clip_sample=False,
-            set_alpha_to_one=False,
-            prediction_type="v_prediction",
+            #set_alpha_to_one=False,
+            #prediction_type="v_prediction",
         )
 
     @torch.no_grad()
@@ -73,10 +74,10 @@ class BlendedLatnetDiffusion:
         prompts,
         height=512,
         width=512,
-        num_inference_steps=50,
+        num_inference_steps=1000,
         guidance_scale=7.5,
         generator=torch.manual_seed(42),
-        blending_percentage=0.25,
+        blending_percentage=0.2,
     ):
         batch_size = len(prompts)
 
@@ -105,17 +106,22 @@ class BlendedLatnetDiffusion:
         uncond_embeddings = self.text_encoder(uncond_input.input_ids.to("cuda"))[0]
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
+        # random noise
         latents = torch.randn(
-            (batch_size, self.unet.in_channels, height // 8, width // 8),
+            (batch_size, 4, height // 8, width // 8),
             generator=generator,
-        )
-        latents = latents.to("cuda").half()
+        ).to("cuda")
+        source_latents = torch.cat([source_latents] * batch_size)
 
         self.scheduler.set_timesteps(num_inference_steps)
 
         for t in self.scheduler.timesteps[
             int(len(self.scheduler.timesteps) * blending_percentage) :
         ]:
+
+            #latents = torch.cat((source_latents, latents.half()), dim=1)
+            latents = torch.cat((latents.half(), source_latents), dim=1)
+
             # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
             latent_model_input = torch.cat([latents] * 2)
 
@@ -128,8 +134,6 @@ class BlendedLatnetDiffusion:
                 noise_pred = self.unet(
                     latent_model_input, t, encoder_hidden_states=text_embeddings
                 ).sample
-            print('A')
-            import IPython; IPython.embed(); 
 
             # perform guidance
             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
@@ -137,16 +141,15 @@ class BlendedLatnetDiffusion:
                 noise_pred_text - noise_pred_uncond
             )
 
-            import IPython; IPython.embed(); exit(1)
             # compute the previous noisy sample x_t -> x_t-1
-            latents = self.scheduler.step(noise_pred, t, latents).prev_sample
+            latents = self.scheduler.step(noise_pred, t, latents[:,:4,:,:]).prev_sample
 
             # Blending
             noise_source_latents = self.scheduler.add_noise(
                 source_latents, torch.randn_like(latents), t
             )
-            import IPython; IPython.embed(); exit(1)
-            #latents = latents * latent_mask + noise_source_latents * (1 - latent_mask)
+            #import IPython; IPython.embed(); exit(1)
+            latents = latents * latent_mask + noise_source_latents * (1 - latent_mask)
 
         latents = 1 / 0.18215 * latents
 
