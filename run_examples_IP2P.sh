@@ -18,7 +18,7 @@ for file in "$input_folder"/*_image_condition.png; do
 
   # Run the Python script with the extracted filenames
   python scripts/text_editing_IP2P.py \
-      --prompt "starry night sky" \
+      --prompt "chinese ink" \
       --init_image "$init_image" \
       --output_path "$output_path" \
 
