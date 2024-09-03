@@ -74,7 +74,7 @@ class BlendedLatnetDiffusion:
         prompts,
         height=512,
         width=512,
-        num_inference_steps=1000,
+        num_inference_steps=50,
         guidance_scale=7.5,
         generator=torch.manual_seed(42),
         blending_percentage=0.2,
