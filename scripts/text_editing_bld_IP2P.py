@@ -107,7 +107,7 @@ class BlendedLatnetDiffusion:
         image = image.resize((height, width), Image.BILINEAR)
         image = np.array(image)[:, :, :3]
         source_latents = self._image2latent(image)
-        latent_mask, org_mask = self._read_mask(mask_path)
+        latent_mask, org_mask = self._read_mask(mask_path, smooth=True)
 
         text_input = self.tokenizer(
             prompts,
@@ -194,12 +194,14 @@ class BlendedLatnetDiffusion:
 
         return latents
 
-    def _read_mask(self, mask_path: str, dest_size=(64, 64)):
+    def _read_mask(self, mask_path: str, dest_size=(64, 64), smooth=False):
         org_mask = Image.open(mask_path).convert("L")
         mask = org_mask.resize(dest_size, Image.NEAREST)
         mask = np.array(mask) / 255
         mask[mask < 0.5] = 0
         mask[mask >= 0.5] = 1
+        if smooth:
+          mask = smooth_mask(mask)
         mask = mask[np.newaxis, np.newaxis, ...]
         mask = torch.from_numpy(mask).half().to(self.args.device)
 
