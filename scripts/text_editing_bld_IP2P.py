@@ -1,11 +1,33 @@
 import argparse
 import numpy as np
 from PIL import Image
+import cv2
 
 from diffusers import DDIMScheduler, StableDiffusionPipeline
 from diffusers import StableDiffusionInstructPix2PixPipeline
 from diffusers import DDPMScheduler
 import torch
+
+def smooth_mask(mask, kernel_size=5, iterations=3):
+    """Smooths the boundaries of a binary mask using morphological operations.
+
+    Args:
+      mask: A numpy array representing the binary mask.
+      kernel_size: The size of the kernel used for morphological operations.
+      iterations: The number of times to apply morphological operations.
+
+    Returns:
+      A numpy array representing the smoothed mask.
+    """
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+
+    # Apply morphological closing to fill small holes and smooth the inner boundary.
+    closed_mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=iterations)
+
+    # Apply morphological opening to remove small protrusions and smooth the outer boundary.
+    smoothed_mask = cv2.morphologyEx(closed_mask, cv2.MORPH_OPEN, kernel, iterations=iterations)
+
+    return smoothed_mask
 
 
 class BlendedLatnetDiffusion:
