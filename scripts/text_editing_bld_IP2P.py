@@ -8,7 +8,7 @@ from diffusers import StableDiffusionInstructPix2PixPipeline
 from diffusers import DDPMScheduler
 import torch
 
-def smooth_mask(mask, kernel_size=5, iterations=3):
+def smooth_mask(mask, kernel_size=3, iterations=1):
     """Smooths the boundaries of a binary mask using morphological operations.
 
     Args:
@@ -195,9 +195,11 @@ class BlendedLatnetDiffusion:
         return latents
 
     def _read_mask(self, mask_path: str, dest_size=(64, 64), smooth=False):
-        org_mask = Image.open(mask_path).convert("L")
+        #org_mask = Image.open(mask_path).convert("L")
+        org_mask = Image.open(mask_path).convert("RGB")
         mask = org_mask.resize(dest_size, Image.NEAREST)
         mask = np.array(mask) / 255
+        mask = mask[:, :, 0]
         mask[mask < 0.5] = 0
         mask[mask >= 0.5] = 1
         if smooth:
